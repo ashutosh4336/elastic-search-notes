@@ -66,7 +66,7 @@ Primary and Replica Shards. Can't change primary shards later on.
 
 > Worst case - Re-index all data to add primary shards
 
-```http
+```json
 PUT /indexname
 {
     "settings": {
@@ -86,7 +86,7 @@ Description
   so for 1 Primary 1 Replica, in Total - 2
   sor 3 primary (3 \* 1) Replica Total - 6
 
-```http
+```json
 PUT /indexname
 {
     "settings": {
@@ -123,12 +123,14 @@ Description
 - What is mapping ?
   Ans - A mapping is a schema definition. Elastic search has a reasonable defaults but sometimes you need to customize them.
 
-```curl
+```json
 curl -H "Content-Type: application/json" -XPUT 127.0.0.1:9200/movies -d '
 {
     "mappings" : {
         "properties" : {
-            "year" : { "type" : "date }
+            "year" : {
+              "type" : "date"
+            }
         },
     },
 }'
@@ -146,7 +148,7 @@ curl -H "Content-Type: application/json" -XPUT 127.0.0.1:9200/movies -d '
 - boolean
 - date
 
-```
+```json
 "properties" : {
     "user_id" : {
         "type" : {
@@ -164,7 +166,7 @@ Do you want this field indexed for full text search ?
 - not_analyzed
 - no
 
-```
+```json
 "properties" : {
     "genre" : {
         "index" : "not_analyzed"
@@ -181,7 +183,7 @@ Define your tokenizer and token filter.
 - simple
 - english
 
-```
+```json
 "properties" : {
     "description" : {
         "analyzer" : "english"
@@ -198,9 +200,16 @@ Define your tokenizer and token filter.
    - Whitespace - splits on any white space but doesn't lowercase.
    - Language - Accounts for language-specific stopwords and stemming
 
-> Hands On
+## Hands On
 
-- Mapping
+Custom `curl`
+
+```bash
+#!/bin/bash
+/usr/bin/curl -H "Content-Type: application/json" "$@"
+```
+
+### Mapping
 
 Create Mapping
 
@@ -232,7 +241,9 @@ Output
 { "movies": { "mappings": { "properties": { "year": { "type": "date" } } } } }
 ```
 
-Insert Data after mapping of data
+### Insert Data (after mapping of data)
+
+> Insert a Single Document
 
 ```json
 curl -XPOST 127.0.0.1:9200/movies/_doc/109487 -d '
@@ -258,48 +269,7 @@ Output
 }
 ```
 
-Get Data
-
-```
-curl -XGET "127.0.0.1:9200/movies/_search?pretty"
-```
-
-Output
-
-```json
-{
-  "took": 707,
-  "timed_out": false,
-  "_shards": {
-    "total": 1,
-    "successful": 1,
-    "skipped": 0,
-    "failed": 0
-  },
-  "hits": {
-    "total": {
-      "value": 1,
-      "relation": "eq"
-    },
-    "max_score": 1.0,
-    "hits": [
-      {
-        "_index": "movies",
-        "_type": "_doc",
-        "_id": "109487",
-        "_score": 1.0,
-        "_source": {
-          "genre": ["IMAX", "Sci-Fi"],
-          "title": "Interstellar",
-          "year": 2014
-        }
-      }
-    ]
-  }
-}
-```
-
-Insert Many Documents
+> Insert Many Documents
 
 ```
 curl -XPUT 127.0.0.1:9200/_bulk?pretty --data-binary @movies.json
@@ -396,5 +366,223 @@ Output
       }
     }
   ]
+}
+```
+
+### Update Data
+
+> Update a whole document
+
+```json
+curl -XPUT 127.0.0.1:9200/movies/_doc/135569?pretty -d '
+{
+  "genres" : ["IMAX", "Sci-Fi"],
+  "title" : "Star Trek Editing First",
+  "year" : 2016
+}'
+```
+
+Output
+
+```json
+{
+  "_index": "movies",
+  "_type": "_doc",
+  "_id": "135569",
+  "_version": 2,
+  "result": "updated",
+  "_shards": {
+    "total": 2,
+    "successful": 1,
+    "failed": 0
+  },
+  "_seq_no": 5,
+  "_primary_term": 2
+}
+```
+
+> Update Partial Document
+
+```json
+curl -XPOST 127.0.0.1:9200/movies/_doc/135569/_update -d '
+{
+  "doc" : {
+    "title" : "Star trek beyond 3"
+  }
+}'
+```
+
+Output
+
+```json
+{
+  "_index": "movies",
+  "_type": "_doc",
+  "_id": "135569",
+  "_version": 3,
+  "result": "updated",
+  "_shards": { "total": 2, "successful": 1, "failed": 0 },
+  "_seq_no": 6,
+  "_primary_term": 2
+}
+```
+
+> Update with Concurrency
+
+```json
+curl -XPOST "127.0.0.1:9200/movies/_doc/109487/_update?if_seq_no=14&if_primary_term=2" -d '
+{
+  "doc" : {
+    "year" : 2014
+  }
+}'
+```
+
+### Get Data
+
+> Get all Documents
+
+```
+curl -XGET "127.0.0.1:9200/movies/_search?pretty"
+```
+
+Output
+
+```json
+{
+  "took": 707,
+  "timed_out": false,
+  "_shards": {
+    "total": 1,
+    "successful": 1,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": {
+      "value": 1,
+      "relation": "eq"
+    },
+    "max_score": 1.0,
+    "hits": [
+      {
+        "_index": "movies",
+        "_type": "_doc",
+        "_id": "109487",
+        "_score": 1.0,
+        "_source": {
+          "genre": ["IMAX", "Sci-Fi"],
+          "title": "Interstellar",
+          "year": 2014
+        }
+      }
+    ]
+  }
+}
+```
+
+> Search Documents
+
+```curl
+curl -XGET 127.0.0.1:9200/movies/_search?q=trek
+```
+
+> Retrieve One Document
+
+```curl
+curl -XGET 127.0.0.1:9200/movies/_doc/135569?pretty
+```
+
+### Delete Data
+
+Delete entire Index
+
+```bash
+// curl -XDELETE 127.0.0.1:9200/indexname
+curl -XDELETE 127.0.0.1:9200/movies
+```
+
+Output
+
+```js
+{"acknowledged":true}
+
+```
+
+Delete a Single Data
+
+```json
+curl -XDELETE 127.0.0.1:9200/movies/_doc/135569?pretty
+```
+
+Output
+
+```json
+{
+  "_index": "movies",
+  "_type": "_doc",
+  "_id": "135569",
+  "_version": 4,
+  "result": "deleted",
+  "_shards": {
+    "total": 2,
+    "successful": 1,
+    "failed": 0
+  },
+  "_seq_no": 7,
+  "_primary_term": 2
+}
+```
+
+> After Delete if we try to find the document the result would be
+
+```json
+{
+  "_index": "movies",
+  "_type": "_doc",
+  "_id": "135569",
+  "found": false
+}
+```
+
+> Retry on Conflict
+
+```json
+curl -XPOST "127.0.0.1:9200/movies/_doc/109487/_update?retry_on_conflict=5" -d '{"doc" : {"year" : 2015}}'
+```
+
+### Search
+
+```json
+curl -XGET 127.0.0.1:9200/movies/_search?pretty -d '{"query" : {"match" : {"title" : "Star Trek"}}}'
+```
+
+```json
+curl -XGET 127.0.0.1:9200/movies/_search?pretty -d '{"query" : {"match_phase" : {"genre" : "sci"}}}'
+```
+
+ReIndex
+
+```json
+curl -XPUT 127.0.0.1:9200/movies -d '
+{
+  "mappings" : {
+    "properties" : {
+      "id" : {"type" : "integer"},
+      "year" : {"type" :  "date"},
+      "genre" : {"type" : "keyword"},
+      "title" : {"type" : "text", "analyzer" : "english"}
+    }
+  }
+}'
+```
+
+Output
+
+```json
+{
+  "acknowledged": true,
+  "shards_acknowledged": true,
+  "index": "movies"
 }
 ```

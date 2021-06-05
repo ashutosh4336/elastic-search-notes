@@ -2,9 +2,12 @@
     "cSpell.words": [
         "Lowercasing",
         "Lucene",
+        "XDELETE",
         "XGET",
+        "XPOST",
         "XPUT",
         "indexname",
+        "lowercases",
         "stopwords"
     ]
 }
