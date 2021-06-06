@@ -6,6 +6,7 @@
         "XGET",
         "XPOST",
         "XPUT",
+        "fileset",
         "indexname",
         "lowercases",
         "stopwords"

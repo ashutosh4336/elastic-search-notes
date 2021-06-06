@@ -586,3 +586,167 @@ Output
   "index": "movies"
 }
 ```
+
+Bulk Writing
+
+```bash
+curl -XPUT 127.0.0.1:9200/_bulk?pretty --data-binary @movies.json
+```
+
+### Data Modeling
+
+```json
+curl -XPUT 127.0.0.1:9200/series -d '
+ {
+  "mappings": {
+    "properties": {
+      "film_to_franchise": {
+        "type": "join",
+        "relations": {
+          "franchise": "film"
+          }
+      }
+    }
+  }
+}'
+
+```
+
+Output
+
+```json
+{
+  "acknowledged": true,
+  "shards_acknowledged": true,
+  "index": "series"
+}
+```
+
+Querying Series which has a parent
+
+```json
+curl -XGET 127.0.0.1:9200/series/_search?pretty -d '
+ {
+  "query": {
+    "has_parent": {
+      "parent_type": "franchise",
+      "query": {
+        "match": {
+          "title": "Star Wars"
+        }
+      }
+    }
+  }
+}'
+
+```
+
+Query the Franchise that has a child and title matches with specified term
+
+```json
+curl -XGET 127.0.0.1:9200/series/_search?pretty -d '
+ {
+  "query": {
+    "has_child": {
+      "type": "film",
+      "query": {
+        "match": {
+          "title": "The Force Awakens"
+        }
+      }
+    }
+  }
+}'
+```
+
+See Mapping of an Index
+
+```bash
+curl -XGET 127.0.0.1:9200/series/_mapping?pretty=true
+```
+
+```bash
+curl -XGET 127.0.0.1:9200/demo-default/_mapping?pretty=true
+```
+
+Sample Output
+
+```json
+{
+  "demo-default": {
+    "mappings": {
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "fileset": {
+          "properties": {
+            "name": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            }
+          }
+        },
+        "host": {
+          "properties": {
+            "hostname": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "name": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            }
+          }
+        },
+        "message": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "process": {
+          "properties": {
+            "name": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "pid": {
+              "type": "long"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Cluster State
+
+```bash
+curl -XGET 127.0.0.1:9200/_cluster/state?pretty=true
+```
